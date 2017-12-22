@@ -90,3 +90,11 @@ class Plane(tk.Canvas):
     def apply(self, *ids, **kwargs):
         for id in ids:
             self.itemconfig(id, **kwargs)
+
+    def emphasize_hull(self, hull):
+        self.apply(*hull.lines, fill="black")
+        self.emphasize_group(hull.dots_group)
+
+    def remove_emphasize_hull(self, hull):
+        self.apply(*hull.lines, fill="grey")
+        self.remove_emphasize_group(hull.dots_group)

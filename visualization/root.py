@@ -49,6 +49,8 @@ class Root(tk.Frame):
             batch_size = min(2 ** (2 ** i), len(dots))
             is_build = self._solve_for_batch_size(dots, batch_size)
             if is_build:
+                for hull in self.graham_hulls:
+                    self.plane.delete(*hull.lines)
                 return
 
     def _solve_for_batch_size(self, dots, batch_size):
@@ -67,9 +69,9 @@ class Root(tk.Frame):
             self.graham_hulls.append(hull)
             time.sleep(1)
 
-        time.sleep(2)
+        time.sleep(0.5)
         print("starting Jarvis")
-        is_build, line_ids, hull = self._perform_jarvis_march(batch_size)
+        is_build, line_ids, hull = self._perform_jarvis_march(batch_size, delay=.5)
         if not is_build:
             self.plane.delete(*line_ids)
         return is_build
@@ -104,7 +106,7 @@ class Root(tk.Frame):
 
         hull.append(dots[0])
         if len(dots) == 1:
-            return hull
+            return ConvexHull(Group(group.id, hull), [])
 
         hull.append(dots[1])
         line_id = self.plane.create_segment(dots[0], dots[1])
@@ -141,7 +143,7 @@ class Root(tk.Frame):
 
         return ConvexHull(Group(group.id, hull), lines)
 
-    def _perform_jarvis_march(self, max_steps, delay=1):
+    def _perform_jarvis_march(self, max_steps, delay=.5):
         # blur existing lines on the screen
         for hull in self.graham_hulls:
             self.plane.apply(*hull.lines, fill="grey")
@@ -187,7 +189,7 @@ class Root(tk.Frame):
         base_dot = self.graham_hulls[base_hull_index].get_dot(base_dot_index)
 
         next_dot_index, next_hull_index = get_next_dot(base_dot_index, base_hull_index, self.graham_hulls)
-        next_dot = self.graham_hulls[base_hull_index].get_dot(next_dot_index)
+        next_dot = self.graham_hulls[next_hull_index].get_dot(next_dot_index)
         next_hull_index = base_hull_index
 
         lines.append(self.plane.create_segment(base_dot, next_dot))
@@ -199,10 +201,17 @@ class Root(tk.Frame):
                 continue
             dot_index = find_rightest_index(base_dot, hull)
 
+            self.plane.emphasize_hull(hull)
+            self.plane.update()
+            time.sleep(delay / 3)
+
             lines.append(self.plane.create_segment(base_dot, hull.get_dot(dot_index)))
             self.plane.update()
-            time.sleep(delay)
+            time.sleep(delay / 3)
 
+            self.plane.remove_emphasize_hull(hull)
+            self.plane.update()
+            time.sleep(delay / 3)
             if rotate(base_dot, next_dot, hull.get_dot(dot_index)) < 0:
                 next_dot = hull.get_dot(dot_index)
                 next_dot_index = dot_index
