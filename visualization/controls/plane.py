@@ -38,12 +38,13 @@ class Plane(tk.Canvas):
         self.points.append(point_id)
         return point_id
 
-    def create_segment(self, dot_a, dot_b, color="black"):
+    def create_segment(self, dot_a, dot_b, color="black", **kwargs):
         line_id = self.create_line(dot_a.coordinates[0] + self.DOT_RADIUS,
                                    dot_a.coordinates[1] + self.DOT_RADIUS,
                                    dot_b.coordinates[0] + self.DOT_RADIUS,
                                    dot_b.coordinates[1] + self.DOT_RADIUS,
-                                   fill=color)
+                                   fill=color,
+                                   **kwargs)
         return line_id
 
     def get_all_dots(self):
@@ -78,8 +79,14 @@ class Plane(tk.Canvas):
         for dot in group.dots:
             self.itemconfig(dot.id, width=1)
 
-    def emphasize_line(self, line_id):
-        self.itemconfig(line_id, width=3)
+    def emphasize_line(self, *line_ids):
+        for line_id in line_ids:
+            self.itemconfig(line_id, width=3)
 
-    def remove_emphasize_line(self, line_id):
-        self.itemconfig(line_id, width=1)
+    def remove_emphasize_line(self, *line_ids):
+        for line_id in line_ids:
+            self.itemconfig(line_id, width=1)
+
+    def apply(self, *ids, **kwargs):
+        for id in ids:
+            self.itemconfig(id, **kwargs)

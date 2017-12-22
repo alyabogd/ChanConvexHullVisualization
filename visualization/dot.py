@@ -15,6 +15,9 @@ class Dot:
     def __repr__(self) -> str:
         return self.__str__()
 
+    def __eq__(self, o) -> bool:
+        return self.id == o.id and self.coordinates == o.coordinates
+
 
 # AB -> AC
 # == 0: collinear vectors
@@ -35,6 +38,9 @@ class Group:
         self.id = id
         self.dots = dots
 
+    def __len__(self):
+        return len(self.dots)
+
     def __str__(self) -> str:
         return "[{}, {}]".format(self.id, self.dots)
 
@@ -48,3 +54,9 @@ class ConvexHull:
         self.dots_group = dots_group
         # Ids of canvas lines, which connect dots from dots_group
         self.lines = lines
+
+    def get_dot(self, index):
+        return self.dots_group.dots[index]
+
+    def __len__(self):
+        return len(self.dots_group)
