@@ -72,7 +72,7 @@ class Root(tk.Frame):
         for group in groups:
             hull = self._perform_graham_scan(group, delay=delay)
             self.graham_hulls.append(hull)
-            time.sleep(delay * 3)
+            time.sleep(delay)
 
         time.sleep(0.5)
         print("starting Jarvis")
@@ -261,5 +261,3 @@ class Root(tk.Frame):
         self.plane.points.clear()
         self.graham_hulls.clear()
         self.status_global.set_status("Status:")
-
-
