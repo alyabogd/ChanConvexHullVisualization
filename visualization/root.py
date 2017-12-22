@@ -263,7 +263,3 @@ class Root(tk.Frame):
         self.status_global.set_status("Status:")
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    main_app = Root(root)
-    main_app.mainloop()
