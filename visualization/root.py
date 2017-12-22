@@ -1,5 +1,6 @@
 import tkinter as tk
 import time
+import random
 
 from algorithm.graham import cmp_to_key, get_cmp_for_dot, get_start_dot
 from algorithm.jarvis import find_leftest_from_hulls, find_rightest_index, get_next_dot
@@ -21,7 +22,7 @@ class Root(tk.Frame):
 
     def _configure_window(self):
         self.master.title("Chan's algorithm visualization")
-        self.master.geometry("900x800")
+        self.master.geometry("900x700")
         self.master.resizable(False, False)
 
     def _initialize_controls(self, master):
@@ -34,26 +35,30 @@ class Root(tk.Frame):
 
         # control panel
         self.control_panel = ControlPanel(width=300)
-        self.control_panel.grid(row=2, column=0)
+        self.control_panel.grid(row=2, column=0, sticky=tk.N)
         self.control_panel.set_start_action(self._build_convex_hull)
+        self.control_panel.set_reset_action(self._reset)
+        self.control_panel.set_random_dots_action(self._add_random_dots)
 
         # canvas with dots
-        self.plane = Plane(width=600, height=900, background="white", highlightbackground="black", highlightthickness=1)
-        self.plane.grid(row=2, column=1)
+        self.plane = Plane(width=600, height=600, background="white", highlightbackground="black", highlightthickness=1)
+        self.plane.grid(row=2, column=1, sticky=tk.W)
         self.plane.bind("<Button-1>", lambda event: self.plane.create_dot(event.x, event.y))
 
     def _build_convex_hull(self):
+        delay = self.control_panel.get_selected_delay()
+
         dots = self.plane.get_all_dots()
 
         for i in range(1, len(dots)):
             batch_size = min(2 ** (2 ** i), len(dots))
-            is_build = self._solve_for_batch_size(dots, batch_size)
+            is_build = self._solve_for_batch_size(dots, batch_size, delay=delay)
             if is_build:
                 for hull in self.graham_hulls:
                     self.plane.delete(*hull.lines)
                 return
 
-    def _solve_for_batch_size(self, dots, batch_size):
+    def _solve_for_batch_size(self, dots, batch_size, delay=.5):
         # delete existing hulls if any
         for hull in self.graham_hulls:
             self.plane.delete(*hull.lines)
@@ -65,23 +70,23 @@ class Root(tk.Frame):
 
         # build convex hull over each hull using Graham scan
         for group in groups:
-            hull = self._perform_graham_scan(group)
+            hull = self._perform_graham_scan(group, delay=delay)
             self.graham_hulls.append(hull)
-            time.sleep(1)
+            time.sleep(delay * 3)
 
         time.sleep(0.5)
         print("starting Jarvis")
-        is_build, line_ids, hull = self._perform_jarvis_march(batch_size, delay=.5)
+        is_build, line_ids, hull = self._perform_jarvis_march(batch_size, delay=delay)
         if not is_build:
             self.plane.delete(*line_ids)
         return is_build
 
-    def _perform_graham_scan(self, group):
+    def _perform_graham_scan(self, group, delay=.3):
         self.status_global.set_status(
             "Building convex hull for group {} using Graham scan algorithm".format(group.id + 1))
         self.plane.emphasize_group(group)
 
-        hull = self._graham_scan_steps(group, delay=0.15)
+        hull = self._graham_scan_steps(group, delay=delay / 2)
 
         self.plane.remove_emphasize_group(group)
         return hull
@@ -167,7 +172,7 @@ class Root(tk.Frame):
         current_dot_index = 0
         for i in range(max_steps):
             self.status_global.set_status("{} step from {}".format(i + 1, max_steps))
-            dot_index, hull_index = self._perform_jarvis_march_step(current_dot_index, active_hull_index, delay)
+            dot_index, hull_index = self._perform_jarvis_march_step(current_dot_index, active_hull_index, delay=delay)
 
             dot = self.graham_hulls[hull_index].get_dot(dot_index)
             hull_line_ids.append(self.plane.create_segment(current_dot, dot, color="red", width=5))
@@ -184,7 +189,7 @@ class Root(tk.Frame):
 
         return hull[-1] == hull[0], hull_line_ids, hull
 
-    def _perform_jarvis_march_step(self, base_dot_index, base_hull_index, delay):
+    def _perform_jarvis_march_step(self, base_dot_index, base_hull_index, delay=0.5):
         lines = []
         base_dot = self.graham_hulls[base_hull_index].get_dot(base_dot_index)
 
@@ -212,7 +217,12 @@ class Root(tk.Frame):
             self.plane.remove_emphasize_hull(hull)
             self.plane.update()
             time.sleep(delay / 3)
-            if rotate(base_dot, next_dot, hull.get_dot(dot_index)) < 0:
+
+            angle = rotate(base_dot, next_dot, hull.get_dot(dot_index))
+            dist_to_next = base_dot.get_squared_distance_to(next_dot)
+            dist_to_cur = base_dot.get_squared_distance_to(hull.get_dot(dot_index))
+
+            if angle < 0 or (angle == 0 and dist_to_cur > dist_to_next):
                 next_dot = hull.get_dot(dot_index)
                 next_dot_index = dot_index
                 next_hull_index = i
@@ -221,6 +231,13 @@ class Root(tk.Frame):
         lines.clear()
 
         return next_dot_index, next_hull_index
+
+    def _add_random_dots(self, n):
+        for _ in range(n):
+            x = random.randint(10, 590)
+            y = random.randint(10, 590)
+
+            self.plane.create_dot(x, y)
 
     @staticmethod
     def _divide_into_groups(dots, batch_size):
@@ -237,6 +254,13 @@ class Root(tk.Frame):
             i += 1
 
         return groups
+
+    def _reset(self):
+        print("reset")
+        self.plane.delete("all")
+        self.plane.points.clear()
+        self.graham_hulls.clear()
+        self.status_global.set_status("Status:")
 
 
 if __name__ == "__main__":

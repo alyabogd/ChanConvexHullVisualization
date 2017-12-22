@@ -5,7 +5,7 @@ def get_next_dot(dot_index, hull_index, hulls):
     hull = hulls[hull_index]
     if len(hull) > 1:
         return dot_index - 1, hull_index
-    return 0, hull_index - 1
+    return 1, hull_index - 1
 
 
 def find_leftest_from_hulls(hulls):
