@@ -16,6 +16,8 @@ class Root(tk.Frame):
         self._configure_window()
         self._initialize_controls(master)
 
+        self.hulls = []
+
     def _configure_window(self):
         self.master.title("Chan's algorithm visualization")
         self.master.geometry("900x800")
@@ -54,14 +56,14 @@ class Root(tk.Frame):
         self.plane.color_groups(groups)
 
         # build convex hull over each hull using Graham scan
-        # for group in groups:
-        #     self._show_graham_scan(group)
-        self.plane.after(0, lambda: self._show_graham_scan(groups[0]))
+        for group in groups:
+            self._show_graham_scan(group)
+            time.sleep(1)
 
         return True
 
     def _show_graham_scan(self, group):
-        self.status_global.set_status("Building convex hull for group {} using Graham scan".format(group.id))
+        self.status_global.set_status("Building convex hull for group {} using Graham scan".format(group.id + 1))
         self.plane.emphasize_group(group)
 
         self._graham_scan_steps(group.dots, 0.15)
@@ -119,6 +121,7 @@ class Root(tk.Frame):
             self.plane.update()
             time.sleep(delay)
         lines.append(self.plane.create_segment(hull[0], hull[-1]))
+        self.plane.update()
         return hull
 
     @staticmethod

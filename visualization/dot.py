@@ -40,3 +40,11 @@ class Group:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+class ConvexHull:
+    def __init__(self, dots_group, lines):
+        # Group object with dots which form the convex hull
+        self.dots_group = dots_group
+        # Ids of canvas lines, which connect dots from dots_group
+        self.lines = lines

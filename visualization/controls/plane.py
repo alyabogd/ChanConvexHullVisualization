@@ -72,7 +72,7 @@ class Plane(tk.Canvas):
 
     def emphasize_group(self, group):
         for dot in group.dots:
-            self.itemconfig(dot.id, width=3)
+            self.itemconfig(dot.id, width=7)
 
     def remove_emphasize_group(self, group):
         for dot in group.dots:
