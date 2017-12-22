@@ -57,5 +57,4 @@ class ControlPanel(tk.Frame):
         self.add_points_button.config(command=action)
 
     def get_selected_delay(self):
-        print("delay {}".format(1 - int(self.speed_scale.get()) / 10.05))
-        return (1 - int(self.speed_scale.get()) / 10.05)
+        return 1 - int(self.speed_scale.get()) / 10.05

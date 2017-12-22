@@ -6,6 +6,7 @@ from algorithm.graham import cmp_to_key, get_cmp_for_dot, get_start_dot
 from algorithm.jarvis import find_leftest_from_hulls, find_rightest_index, get_next_dot
 from visualization.controls.control_panel import ControlPanel
 from visualization.controls.plane import Plane
+from visualization.controls.status_console import StatusConsole
 from visualization.controls.statusbar import StatusBar
 from visualization.dot import Group, rotate, ConvexHull
 
@@ -16,39 +17,39 @@ class Root(tk.Frame):
         self.master = master
 
         self._configure_window()
-        self._initialize_controls(master)
+        self._initialize_controls()
 
         self.graham_hulls = []
 
     def _configure_window(self):
         self.master.title("Chan's algorithm visualization")
-        self.master.geometry("900x700")
+        self.master.geometry("1050x700")
         self.master.resizable(False, False)
 
-    def _initialize_controls(self, master):
-        self.label = tk.Label(master, text="Chan's algorithm", padx=5, pady=5)
-        self.label.grid(row=0)
+    def _initialize_controls(self):
 
         # status bar
-        self.status_panel = StatusBar(height=50, width=900)
-        self.status_panel.grid(row=1, columnspan=2, sticky=tk.W)
+        self.status_panel = StatusBar(height=50, width=500)
+        self.status_panel.grid(row=1, columnspan=3, sticky=tk.W)
 
-        # control panel
-        self.control_panel = ControlPanel(width=300)
-        self.control_panel.grid(row=2, column=0, sticky=tk.N)
-        self.control_panel.set_start_action(self._build_convex_hull)
-        self.control_panel.set_reset_action(self._reset)
-        self.control_panel.set_random_dots_action(self._add_random_dots)
+        # status console
+        self.status_console = StatusConsole(width=35, height=700, bg="#EFEBE9", padx=5, pady=5)
+        self.status_console.grid(row=2, column=0, sticky=tk.N + tk.W)
 
         # canvas with dots
         self.plane = Plane(width=600, height=600, background="white", highlightbackground="black", highlightthickness=1)
-        self.plane.grid(row=2, column=1, sticky=tk.W)
+        self.plane.grid(row=2, column=1, sticky=tk.N)
         self.plane.bind("<Button-1>", lambda event: self.plane.create_dot(event.x, event.y))
 
-    def _build_convex_hull(self):
-        delay = self.control_panel.get_selected_delay()
+        # control panel
+        self.control_panel = ControlPanel(width=300)
+        self.control_panel.grid(row=2, column=2, sticky=tk.N+tk.E)
+        self.control_panel.set_start_action(self._start)
+        self.control_panel.set_reset_action(self._reset)
+        self.control_panel.set_random_dots_action(self._add_random_dots)
 
-        dots = self.plane.get_all_dots()
+    def _build_convex_hull(self, dots):
+        delay = self.control_panel.get_selected_delay()
 
         for i in range(1, len(dots)):
             batch_size = min(2 ** (2 ** i), len(dots))
@@ -58,10 +59,12 @@ class Root(tk.Frame):
                 for hull in self.graham_hulls:
                     self.plane.delete(*hull.lines)
                 self.status_panel.set_status("Convex Hull is built. Size: {}".format(len(global_hull)))
+                self.status_console.print_status("Convex Hull is built")
                 return
 
     def _solve_for_batch_size(self, dots, batch_size, delay=.5):
         self.status_panel.set_batch_size(batch_size)
+        self.status_console.print_status("Set batch size: {}".format(batch_size))
 
         # delete existing hulls if any
         for hull in self.graham_hulls:
@@ -70,18 +73,27 @@ class Root(tk.Frame):
 
         # divide initial dots into groups
         groups = Root._divide_into_groups(dots, batch_size)
+        self.status_console.print_status("Got: {} groups".format(len(groups)))
         self.plane.color_groups(groups)
 
         # build convex hull over each hull using Graham scan
-        for group in groups:
+        self.status_console.print_status("Start building small hulls using\n Graham scan algorithm")
+        for i, group in enumerate(groups):
             hull = self._perform_graham_scan(group, delay=delay)
+            self.status_console.print_status("{} hull: {} dots".format(i + 1, len(hull)))
             self.graham_hulls.append(hull)
             time.sleep(delay)
 
         time.sleep(0.4)
+
+        self.status_console.print_status("Starting Jarvis march algorithm")
         is_build, line_ids, hull = self._perform_jarvis_march(batch_size, delay=delay)
         if not is_build:
             self.plane.delete(*line_ids)
+            self.status_console.print_status(
+                "{} from {} steps performed.\n"
+                " Convex hull isn't built.\n"
+                " Increasing batch size".format(batch_size, batch_size))
         return is_build, hull
 
     def _perform_graham_scan(self, group, delay=.3):
@@ -162,6 +174,7 @@ class Root(tk.Frame):
         # and a hull, which this dot belongs to
         self.status_panel.set_status("Find the leftest dot in the input set")
         start_dot, active_hull_index = find_leftest_from_hulls(self.graham_hulls)
+        self.status_console.print_status("Start dot: {}".format(start_dot.coordinates))
 
         self.plane.emphasize_dot(start_dot)
         time.sleep(delay)
@@ -178,6 +191,8 @@ class Root(tk.Frame):
             dot_index, hull_index = self._perform_jarvis_march_step(current_dot_index, active_hull_index, delay=delay)
 
             dot = self.graham_hulls[hull_index].get_dot(dot_index)
+            self.status_console.print_status(
+                "Next dot in hull: {} \n from {}-th graham-hull".format(dot.coordinates, hull_index + 1))
             hull_line_ids.append(self.plane.create_segment(current_dot, dot, color="red", width=5))
             self.plane.update()
             time.sleep(delay)
@@ -267,4 +282,12 @@ class Root(tk.Frame):
         self.plane.delete("all")
         self.plane.points.clear()
         self.graham_hulls.clear()
+        self.status_panel.set_batch_size("-")
         self.status_panel.set_default_status()
+        self.status_console.delete(1.0, tk.END)
+
+    def _start(self):
+        dots = self.plane.get_all_dots()
+        start_status = "Input set: {} dots\n Starting...".format(len(dots))
+        self.status_console.print_status(start_status)
+        self._build_convex_hull(dots)
