@@ -30,8 +30,8 @@ class Root(tk.Frame):
         self.label.grid(row=0)
 
         # status bar
-        self.status_global = StatusBar(height=50, width=900)
-        self.status_global.grid(row=1, columnspan=2, sticky=tk.W)
+        self.status_panel = StatusBar(height=50, width=900)
+        self.status_panel.grid(row=1, columnspan=2, sticky=tk.W)
 
         # control panel
         self.control_panel = ControlPanel(width=300)
@@ -52,13 +52,17 @@ class Root(tk.Frame):
 
         for i in range(1, len(dots)):
             batch_size = min(2 ** (2 ** i), len(dots))
-            is_build = self._solve_for_batch_size(dots, batch_size, delay=delay)
+            time.sleep(1)
+            is_build, global_hull = self._solve_for_batch_size(dots, batch_size, delay=delay)
             if is_build:
                 for hull in self.graham_hulls:
                     self.plane.delete(*hull.lines)
+                self.status_panel.set_status("Convex Hull is built. Size: {}".format(len(global_hull)))
                 return
 
     def _solve_for_batch_size(self, dots, batch_size, delay=.5):
+        self.status_panel.set_batch_size(batch_size)
+
         # delete existing hulls if any
         for hull in self.graham_hulls:
             self.plane.delete(*hull.lines)
@@ -74,19 +78,18 @@ class Root(tk.Frame):
             self.graham_hulls.append(hull)
             time.sleep(delay)
 
-        time.sleep(0.5)
-        print("starting Jarvis")
+        time.sleep(0.4)
         is_build, line_ids, hull = self._perform_jarvis_march(batch_size, delay=delay)
         if not is_build:
             self.plane.delete(*line_ids)
-        return is_build
+        return is_build, hull
 
     def _perform_graham_scan(self, group, delay=.3):
-        self.status_global.set_status(
+        self.status_panel.set_status(
             "Building convex hull for group {} using Graham scan algorithm".format(group.id + 1))
         self.plane.emphasize_group(group)
 
-        hull = self._graham_scan_steps(group, delay=delay / 2)
+        hull = self._graham_scan_steps(group, delay=delay)
 
         self.plane.remove_emphasize_group(group)
         return hull
@@ -157,7 +160,7 @@ class Root(tk.Frame):
 
         # find the leftest dot - start dot for Jarvis march
         # and a hull, which this dot belongs to
-        self.status_global.set_status("Find the leftest dot in the input set")
+        self.status_panel.set_status("Find the leftest dot in the input set")
         start_dot, active_hull_index = find_leftest_from_hulls(self.graham_hulls)
 
         self.plane.emphasize_dot(start_dot)
@@ -171,7 +174,7 @@ class Root(tk.Frame):
         current_dot = start_dot
         current_dot_index = 0
         for i in range(max_steps):
-            self.status_global.set_status("{} step from {}".format(i + 1, max_steps))
+            self.status_panel.set_status("Jarvis march. Step {} from {}".format(i + 1, max_steps))
             dot_index, hull_index = self._perform_jarvis_march_step(current_dot_index, active_hull_index, delay=delay)
 
             dot = self.graham_hulls[hull_index].get_dot(dot_index)
@@ -187,6 +190,7 @@ class Root(tk.Frame):
             if current_dot == hull[0]:
                 break
 
+        self.status_panel.set_sub_status("")
         return hull[-1] == hull[0], hull_line_ids, hull
 
     def _perform_jarvis_march_step(self, base_dot_index, base_hull_index, delay=0.5):
@@ -197,6 +201,7 @@ class Root(tk.Frame):
         next_dot = self.graham_hulls[next_hull_index].get_dot(next_dot_index)
         next_hull_index = base_hull_index
 
+        self.status_panel.set_sub_status(" Take next vertex in current hull")
         lines.append(self.plane.create_segment(base_dot, next_dot))
         self.plane.update()
         time.sleep(delay)
@@ -204,19 +209,21 @@ class Root(tk.Frame):
         for i, hull in enumerate(self.graham_hulls):
             if i == base_hull_index:
                 continue
+            self.status_panel.set_sub_status(" Checking {} hull from {}".format(i + 1, len(self.graham_hulls)))
+
             dot_index = find_rightest_index(base_dot, hull)
 
             self.plane.emphasize_hull(hull)
             self.plane.update()
-            time.sleep(delay / 3)
+            time.sleep(delay / 2)
 
             lines.append(self.plane.create_segment(base_dot, hull.get_dot(dot_index)))
             self.plane.update()
-            time.sleep(delay / 3)
+            time.sleep(delay / 2)
 
             self.plane.remove_emphasize_hull(hull)
             self.plane.update()
-            time.sleep(delay / 3)
+            time.sleep(delay / 2)
 
             angle = rotate(base_dot, next_dot, hull.get_dot(dot_index))
             dist_to_next = base_dot.get_squared_distance_to(next_dot)
@@ -260,4 +267,4 @@ class Root(tk.Frame):
         self.plane.delete("all")
         self.plane.points.clear()
         self.graham_hulls.clear()
-        self.status_global.set_status("Status:")
+        self.status_panel.set_default_status()

@@ -32,7 +32,7 @@ class ControlPanel(tk.Frame):
         self.speed_label = tk.Label(self, text="Select speed: ", padx=5, pady=0)
         self.speed_label.grid(row=6, columnspan=2, sticky=tk.W)
 
-        self.speed_scale = tk.Scale(self, from_=0.1, to=5, orient=tk.HORIZONTAL, resolution=0.1, length=130)
+        self.speed_scale = tk.Scale(self, from_=0.1, to=10, orient=tk.HORIZONTAL, resolution=0.1, length=130)
         self.speed_scale.grid(row=7, columnspan=2)
 
     def set_start_action(self, callback):
@@ -57,4 +57,5 @@ class ControlPanel(tk.Frame):
         self.add_points_button.config(command=action)
 
     def get_selected_delay(self):
-        return (5.05 - int(self.speed_scale.get())) / 2
+        print("delay {}".format(1 - int(self.speed_scale.get()) / 10.05))
+        return (1 - int(self.speed_scale.get()) / 10.05)
