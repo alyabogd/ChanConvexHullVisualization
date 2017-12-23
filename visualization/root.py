@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.filedialog import askopenfilename
 import time
 import random
 
@@ -43,10 +44,11 @@ class Root(tk.Frame):
 
         # control panel
         self.control_panel = ControlPanel(width=300)
-        self.control_panel.grid(row=2, column=2, sticky=tk.N+tk.E)
+        self.control_panel.grid(row=2, column=2, sticky=tk.N + tk.E)
         self.control_panel.set_start_action(self._start)
         self.control_panel.set_reset_action(self._reset)
         self.control_panel.set_random_dots_action(self._add_random_dots)
+        self.control_panel.set_load_action(self._load_dots_from_file)
 
     def _build_convex_hull(self, dots):
         delay = self.control_panel.get_selected_delay()
@@ -58,7 +60,7 @@ class Root(tk.Frame):
             if is_build:
                 for hull in self.graham_hulls:
                     self.plane.delete(*hull.lines)
-                self.status_panel.set_status("Convex Hull is built. Size: {}".format(len(global_hull)))
+                self.status_panel.set_status("Convex Hull is built. Size: {}".format(len(global_hull) - 1))
                 self.status_console.print_status("Convex Hull is built")
                 return
 
@@ -278,7 +280,6 @@ class Root(tk.Frame):
         return groups
 
     def _reset(self):
-        print("reset")
         self.plane.delete("all")
         self.plane.points.clear()
         self.graham_hulls.clear()
@@ -291,3 +292,13 @@ class Root(tk.Frame):
         start_status = "Input set: {} dots\n Starting...".format(len(dots))
         self.status_console.print_status(start_status)
         self._build_convex_hull(dots)
+
+    def _load_dots_from_file(self):
+        filename = askopenfilename()
+        if filename is None or filename == "":
+            return
+        with open(filename, "r") as inp:
+            lines = inp.readlines()
+        for line in lines:
+            x, y = map(int, line.split(" "))
+            self.plane.create_dot(x, y)

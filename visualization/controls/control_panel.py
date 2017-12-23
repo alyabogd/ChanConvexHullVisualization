@@ -35,6 +35,13 @@ class ControlPanel(tk.Frame):
         self.speed_scale = tk.Scale(self, from_=0.1, to=10, orient=tk.HORIZONTAL, resolution=0.1, length=130)
         self.speed_scale.grid(row=7, columnspan=2)
 
+        # create an empty space
+        self.empty_label_3 = tk.Label(self, text="  ", padx=5, pady=5)
+        self.empty_label_3.grid(row=8, columnspan=2)
+
+        self.load_button = tk.Button(self, width=20, text="Load dots")
+        self.load_button.grid(row=9, columnspan=2)
+
     def set_start_action(self, callback):
         def action():
             self.start_button.config(state=tk.DISABLED)
@@ -55,6 +62,9 @@ class ControlPanel(tk.Frame):
             callback(n)
 
         self.add_points_button.config(command=action)
+
+    def set_load_action(self, callback):
+        self.load_button.config(command=callback)
 
     def get_selected_delay(self):
         return 1 - int(self.speed_scale.get()) / 10.05
